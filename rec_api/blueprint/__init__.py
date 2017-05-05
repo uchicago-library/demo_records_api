@@ -61,6 +61,9 @@ class MongoStorageBackend:
     def associate_acc_with_collection(self, c_id, a_id):
         self.db.collections.update_one({'_id': c_id}, {'$push': {'accs': a_id}})
 
+    def deassociate_acc_with_collection(self, c_id, a_id):
+        self.db.collections.update_one({'_id': c_id}, {'$pull': {'accs': a_id}})
+
     def mint_accrec(self, a_id, note="", linked_acc=None, associated_external_ids=[], linked_cid=None):
         if linked_cid:
             if not self.collection_exists(linked_cid):
@@ -203,6 +206,24 @@ class CollectionEditNote(Resource):
         BLUEPRINT.config['storage'].edit_collection_note(c_id, args['note'])
         return c_id
 
+class CollectionLinkedAccs(Resource):
+    def get(self, c_id):
+        return BLUEPRINT.config['storage'].get_collection(c_id)['accs']
+
+    def post(self, c_id):
+        parser = reqparse.RequestParser()
+        parser.add_argument('accrec_id', type=str, required=True)
+        args = parser.parse_args()
+        BLUEPRINT.config['storage'].associate_acc_with_collection(c_id, args['accrec_id'])
+        return c_id
+
+    def delete(self, c_id):
+        parser = reqparse.RequestParser()
+        parser.add_argument('accrec_id', type=str, required=True)
+        args = parser.parse_args()
+        BLUEPRINT.config['storage'].deassociate_acc_with_collection(c_id, args['accrec_id'])
+        return c_id
+
 
 class Accessions(Resource):
     pass
@@ -218,13 +239,13 @@ class Accession(Resource):
         args = parser.parse_args()
         BLUEPRINT.config['storage'].mint_accrec(
             acc_id, note=args.get('note', ""), linked_acc=args.get('linked_acc'),
-            associated_cid=args.get('associated_cid')
+            linked_cid=args.get('associated_cid')
         )
 
-    def get(self, c_id, acc_id):
+    def get(self, acc_id):
         return BLUEPRINT.config['storage'].get_accrec(acc_id)
 
-    def delete(self, c_id, acc_id):
+    def delete(self, acc_id):
         pass
 
 
@@ -287,6 +308,7 @@ API.add_resource(Accessions, "/accessions")
 API.add_resource(Collection, "/collections/<string:collection_id>")
 API.add_resource(CollectionEditName, "/collections/<string:c_id>/editName")
 API.add_resource(CollectionEditNote, "/collections/<string:c_id>/editNote")
+API.add_resource(CollectionLinkedAccs, "/collections/<string:c_id>/linkedAccs")
 API.add_resource(Accession, "/accessions/<string:acc_id>")
 API.add_resource(AccessionLinkId, "/accessions/<string:a_id>/linkedId")
 API.add_resource(AccessionEditNote, "/accessions/<string:a_id>/editNote")
