@@ -119,12 +119,19 @@ def check_limit(limit):
 
 
 class Root(Resource):
-    pass
+    def get(self):
+        log.info("Received GET @ root endpoint")
+        return {
+            "collection_records": API.url_for(Collections),
+            "accession_records": API.url_for(Accessions),
+            "_self": {'_link': API.url_for(Root),
+                      'identifier': None}
+        }
 
 
 class Collections(Resource):
     def get(self):
-        log.info("Received GET @ root endpoint")
+        log.info("Received GET @ collections endpoint")
         log.debug("Parsing args")
         parser = pagination_args_parser.copy()
         args = parser.parse_args()
@@ -174,11 +181,27 @@ class Collection(Resource):
 
 
 class CollectionEditName(Resource):
-    pass
+    def get(self, c_id):
+        return BLUEPRINT.config['storage'].get_collection(c_id)['name']
+
+    def put(self, c_id):
+        parser = reqparse.RequestParser()
+        parser.add_argument('name', type=str, required=True)
+        args = parser.parse_args()
+        BLUEPRINT.config['storage'].edit_collection_name(c_id, args['name'])
+        return c_id
 
 
 class CollectionEditNote(Resource):
-    pass
+    def get(self, c_id):
+        return BLUEPRINT.config['storage'].get_collection(c_id)['note']
+
+    def put(self, c_id):
+        parser = reqparse.RequestParser()
+        parser.add_argument('note', type=str, required=True)
+        args = parser.parse_args()
+        BLUEPRINT.config['storage'].edit_collection_note(c_id, args['note'])
+        return c_id
 
 
 class Accessions(Resource):
@@ -191,10 +214,12 @@ class Accession(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument('note', type=str)
         parser.add_argument('linked_acc', type=str)
+        parser.add_argument('associated_cid', type=str)
         args = parser.parse_args()
-        BLUEPRINT.config['storage'].mint_accrec(c_id, acc_id, note=args.get('note', ""),
-                                                linked_acc=args.get('linked_acc'))
-        BLUEPRINT.config['storage'].associate_acc_with_collection(c_id, acc_id)
+        BLUEPRINT.config['storage'].mint_accrec(
+            acc_id, note=args.get('note', ""), linked_acc=args.get('linked_acc'),
+            associated_cid=args.get('associated_cid')
+        )
 
     def get(self, c_id, acc_id):
         return BLUEPRINT.config['storage'].get_accrec(acc_id)
@@ -205,18 +230,26 @@ class Accession(Resource):
 
 class AccessionEditNote(Resource):
     def get(self, a_id):
-        pass
+        return BLUEPRINT.config['storage'].get_accrec['note']
 
     def put(self, a_id):
-        pass
+        parser = reqparse.RequestParser()
+        parser.add_argument('note', type=str, required=True)
+        args = parser.parse_args()
+        BLUEPRINT.config['storage'].edit_accrec_note(a_id, args['note'])
+        return a_id
 
 
 class AccessionLinkId(Resource):
     def get(self, a_id):
-        pass
+        return BLUEPRINT.config['storage'].get_accrec['linked_acc']
 
     def put(self, a_id):
-        pass
+        parser = reqparse.RequestParser()
+        parser.add_argument('linked_acc', type=str, required=True)
+        args = parser.parse_args()
+        BLUEPRINT.config['storage'].edit_accrec_linked_acc(a_id, args['linked_acc'])
+        return a_id
 
 
 class AccessionExternalIds(Resource):
@@ -233,8 +266,7 @@ def handle_configs(setup_state):
     app = setup_state.app
     BLUEPRINT.config.update(app.config)
 
-    if BLUEPRINT.config['storage'] != "noerror":
-        BLUEPRINT.config['storage'] = MongoStorageBackend(BLUEPRINT)
+    BLUEPRINT.config['storage'] = MongoStorageBackend(BLUEPRINT)
 
     if BLUEPRINT.config.get("VERBOSITY") is None:
         BLUEPRINT.config["VERBOSITY"] = "WARN"
@@ -254,7 +286,7 @@ API.add_resource(Collections, "/collections")
 API.add_resource(Accessions, "/accessions")
 API.add_resource(Collection, "/collections/<string:collection_id>")
 API.add_resource(CollectionEditName, "/collections/<string:c_id>/editName")
-API.add_resource(CollectionEditNote, "/collections//<string:c_id>/editNote")
+API.add_resource(CollectionEditNote, "/collections/<string:c_id>/editNote")
 API.add_resource(Accession, "/accessions/<string:acc_id>")
 API.add_resource(AccessionLinkId, "/accessions/<string:a_id>/linkedId")
 API.add_resource(AccessionEditNote, "/accessions/<string:a_id>/editNote")
