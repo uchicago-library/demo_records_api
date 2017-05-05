@@ -206,6 +206,7 @@ class CollectionEditNote(Resource):
         BLUEPRINT.config['storage'].edit_collection_note(c_id, args['note'])
         return c_id
 
+
 class CollectionLinkedAccs(Resource):
     def get(self, c_id):
         return BLUEPRINT.config['storage'].get_collection(c_id)['accs']
@@ -251,7 +252,7 @@ class Accession(Resource):
 
 class AccessionEditNote(Resource):
     def get(self, a_id):
-        return BLUEPRINT.config['storage'].get_accrec['note']
+        return BLUEPRINT.config['storage'].get_accrec(a_id)['note']
 
     def put(self, a_id):
         parser = reqparse.RequestParser()
@@ -263,7 +264,7 @@ class AccessionEditNote(Resource):
 
 class AccessionLinkId(Resource):
     def get(self, a_id):
-        return BLUEPRINT.config['storage'].get_accrec['linked_acc']
+        return BLUEPRINT.config['storage'].get_accrec(a_id)['linked_acc']
 
     def put(self, a_id):
         parser = reqparse.RequestParser()
@@ -275,10 +276,14 @@ class AccessionLinkId(Resource):
 
 class AccessionExternalIds(Resource):
     def get(self, a_id):
-        pass
+        return BLUEPRINT.config['storage'].get_accrec(a_id)['associated_external_ids']
 
     def post(self, a_id):
-        pass
+        parser = reqparse.RequestParser()
+        parser.add_argument('external_id', type=str, required=True)
+        args = parser.parse_args()
+        BLUEPRINT.config['storage'].add_accrec_associated_external_id(a_id, args['external_id'])
+        return a_id
 
 
 # Let the application context clobber any config options here
