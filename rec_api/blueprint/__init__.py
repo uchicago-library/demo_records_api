@@ -29,6 +29,12 @@ class MongoStorageBackend:
         self.db.collections.insert_one({'name': name, '_id': id, 'note': note, 'accs': []})
         return id
 
+    def edit_collection_name(self, c_id, name):
+        self.db.collections.update_one({'_id': c_id}, {'$set': {'name': name}})
+
+    def edit_collection_note(self, c_id, note):
+        self.db.collections.update_one({'_id': c_id}, {'$set': {'note': note}})
+
     def rm_collection(self, c_id):
         self.db.collections.delete_one({'_id': c_id})
         return c_id
@@ -55,9 +61,23 @@ class MongoStorageBackend:
     def associate_acc_with_collection(self, c_id, a_id):
         self.db.collections.update_one({'_id': c_id}, {'$push': {'accs': a_id}})
 
-    def mint_accrec(self, c_id, a_id, note="", linked_acc=None):
-        self.db.accessions.insert_one({'_id': a_id, 'note': note, 'linked_acc': linked_acc})
+    def mint_accrec(self, a_id, note="", linked_acc=None, associated_external_ids=[], linked_cid=None):
+        if linked_cid:
+            if not self.collection_exists(linked_cid):
+                abort(500)
+            self.associate_acc_with_collection(linked_cid, a_id)
+        self.db.accessions.insert_one({'_id': a_id, 'note': note, 'linked_acc': linked_acc,
+                                       'associated_external_ids': associated_external_ids})
         return id
+
+    def edit_accrec_note(self, a_id, note):
+        self.db.accessions.update_one({'_id': a_id}, {'$set': {'note': note}})
+
+    def edit_accrec_linked_acc(self, a_id, linked_acc):
+        self.db.accessions.update_one({'_id': a_id}, {'$set': {'linked_acc': linked_acc}})
+
+    def add_accrec_associated_external_id(self, a_id, ext_id):
+        self.db.accessions.update_one({'_id': a_id}, {'$push': {'associated_external_ids': ext_id}})
 
     def ls_accessionrecs(self, c_id):
         if not self.collection_exists(c_id):
@@ -67,8 +87,9 @@ class MongoStorageBackend:
     def acc_exists(self, a_id):
         return bool(self.db.accessions.find_one({'_id': a_id}))
 
-    def rm_accrec(self, c_id, a_id):
-        pass
+    def rm_accrec(self, a_id):
+        self.db.accessions.delete_one({'_id': a_id})
+        return a_id
 
     def get_accrec(self, a_id):
         return self.db.accessions.find_one({'_id': a_id})
@@ -98,6 +119,10 @@ def check_limit(limit):
 
 
 class Root(Resource):
+    pass
+
+
+class Collections(Resource):
     def get(self):
         log.info("Received GET @ root endpoint")
         log.debug("Parsing args")
@@ -116,7 +141,7 @@ class Root(Resource):
                 "limit": args['limit'],
                 "next_cursor": next_cursor
             },
-            "_self": {"identifier": None, "_link": API.url_for(Root)}
+            "_self": {"identifier": None, "_link": API.url_for(Collections)}
         }
 
 
@@ -148,8 +173,20 @@ class Collection(Resource):
         }
 
 
+class CollectionEditName(Resource):
+    pass
+
+
+class CollectionEditNote(Resource):
+    pass
+
+
+class Accessions(Resource):
+    pass
+
+
 class Accession(Resource):
-    def put(self, c_id, acc_id):
+    def put(self, acc_id):
         # TODO: Don't clobber things
         parser = reqparse.RequestParser()
         parser.add_argument('note', type=str)
@@ -166,8 +203,28 @@ class Accession(Resource):
         pass
 
 
+class AccessionEditNote(Resource):
+    def get(self, a_id):
+        pass
+
+    def put(self, a_id):
+        pass
+
+
 class AccessionLinkId(Resource):
-    pass
+    def get(self, a_id):
+        pass
+
+    def put(self, a_id):
+        pass
+
+
+class AccessionExternalIds(Resource):
+    def get(self, a_id):
+        pass
+
+    def post(self, a_id):
+        pass
 
 
 # Let the application context clobber any config options here
@@ -193,5 +250,12 @@ def before_request():
 
 
 API.add_resource(Root, "/")
-API.add_resource(Collection, "/<string:collection_id>")
-API.add_resource(Accession, "/<string:c_id>/<string:acc_id>")
+API.add_resource(Collections, "/collections")
+API.add_resource(Accessions, "/accessions")
+API.add_resource(Collection, "/collections/<string:collection_id>")
+API.add_resource(CollectionEditName, "/collections/<string:c_id>/editName")
+API.add_resource(CollectionEditNote, "/collections//<string:c_id>/editNote")
+API.add_resource(Accession, "/accessions/<string:acc_id>")
+API.add_resource(AccessionLinkId, "/accessions/<string:a_id>/linkedId")
+API.add_resource(AccessionEditNote, "/accessions/<string:a_id>/editNote")
+API.add_resource(AccessionExternalIds, "/accessions/<string:a_id>/externalIds")
