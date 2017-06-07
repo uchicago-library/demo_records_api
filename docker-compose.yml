@@ -12,6 +12,7 @@ services:
         depends_on:
             - mongo
         environment:
-            - REC_API_CONFIG=/code/config.py
+            - REC_API_MONGO_HOST=mongo
+            - REC_API_MONGO_DB=recs
     mongo:
         image: "mongo"

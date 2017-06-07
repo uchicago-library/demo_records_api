@@ -14,6 +14,7 @@ setup(
     ),
     install_requires = [
         'flask>0',
+        'flask_env',
         'flask_restful',
         'pymongo'
     ],
