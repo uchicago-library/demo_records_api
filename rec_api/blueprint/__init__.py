@@ -8,9 +8,7 @@ from pymongo import MongoClient, ASCENDING
 BLUEPRINT = Blueprint('idnest', __name__)
 
 
-BLUEPRINT.config = {
-    'storage': 'noerror'
-}
+BLUEPRINT.config = {}
 
 
 API = Api(BLUEPRINT)
@@ -291,6 +289,9 @@ class AccessionExternalIds(Resource):
 def handle_configs(setup_state):
     app = setup_state.app
     BLUEPRINT.config.update(app.config)
+
+    if BLUEPRINT.config.get("DEFER_CONFIG"):
+        return
 
     BLUEPRINT.config['storage'] = MongoStorageBackend(BLUEPRINT)
 

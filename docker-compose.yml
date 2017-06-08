@@ -7,11 +7,13 @@ services:
                 PORT: "8910"
                 WORKERS: "4"
                 TIMEOUT: "30"
+                SECRET_KEY: "setThisAtBuildTime"
         ports: 
             - "8910:8910"
         depends_on:
             - mongo
         environment:
-            - REC_API_CONFIG=/code/config.py
+            - REC_API_MONGO_HOST=mongo
+            - REC_API_MONGO_DB=recs
     mongo:
         image: "mongo"
