@@ -7,6 +7,7 @@ services:
                 PORT: "8910"
                 WORKERS: "4"
                 TIMEOUT: "30"
+                SECRET_KEY: "setThisAtBuildTime"
         ports: 
             - "8910:8910"
         depends_on:
