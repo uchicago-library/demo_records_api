@@ -1,23 +1,13 @@
-FROM python:3.5-alpine
-COPY . /code
-WORKDIR /code
-RUN python setup.py install
-RUN pip install gunicorn
+FROM bnbalsamo/flask_stack
+ENV APP_NAME=rec_api
 ARG MONGO_HOST
 ARG MONGO_DB
 ARG SECRET_KEY="setThisAtBuildTime"
 ARG MONGO_PORT="27017"
 ARG VERBOSITY="WARN"
-ARG PORT="8910"
-ARG WORKERS="4"
-ARG TIMEOUT="30"
 ENV \
     REC_API_MONGO_HOST=${MONGO_HOST} \
     REC_API_MONGO_PORT=${MONGO_PORT} \
     REC_API_MONGO_DB=${MONGO_DB} \
     REC_API_VERBOSITY=${VERBOSITY} \
-    REC_API_SECRET_KEY=${SECRET_KEY} \
-    WORKERS=${WORKERS} \
-    TIMEOUT=${TIMEOUT} \
-    PORT=${PORT}
-CMD gunicorn rec_api:app -w ${WORKERS} -t ${TIMEOUT} -b 0.0.0.0:${PORT}
+    REC_API_SECRET_KEY=${SECRET_KEY}
