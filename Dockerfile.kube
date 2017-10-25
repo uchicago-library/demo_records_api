@@ -1,0 +1,2 @@
+FROM bnbalsamo/gunicorn_socket_server
+ENV APP_NAME=rec_api
